@@ -140,7 +140,7 @@ def generateRarefaction(inputLocation, outputFile, label, samplingRates):
             # Include the read if its sampling rate is greater than number.
             if number <= samplingRates[i]:
 
-                tokens = line.split("\t")
+                tokens = line.strip().split()
                 read = tokens[0].strip()
                 classification = tokens[1].strip()
 
