@@ -69,15 +69,84 @@ VERSION_SHORT = SHORT + "V"
 """
 # =============================================================================
 
+UPDATE DICTIONARY
+
+# =============================================================================
+"""
+def updateDictionary(dictionary, rankings, label):
+
+    for rank in rankings:
+
+        if rank.startswith(str(label) + "_"):
+
+            # we found the right rank!
+            # check to see if it already exists in the dictory:
+
+            if rank in dictionary:
+
+                dictionary[rank] += 1
+                #print "updating " + str(rank)
+
+            else:
+
+                dictionary[rank] = 1
+                #print "adding " + str(rank)
+
+
+"""
+# =============================================================================
+
+OPERATE
+
+# =============================================================================
+"""
+def operate(inputLocation):
+
+    dictionary = {}
+
+    # check input file
+    if not os.path.isfile(inputLocation):
+        raise RuntimeError(
+            "ERROR: Could not open input file: " + inputLocation + "\n")
+
+    inputFile = open(inputLocation, 'r')
+
+    for line in inputFile:
+
+        #print line
+
+        tokens = line.split("\t")
+        read = tokens[0].strip()
+        classification = tokens[1].strip()
+
+        #print read
+        #print classification
+
+        rankings = classification.split("|")
+
+        #print rankings
+
+        updateDictionary(dictionary, rankings, "s")
+
+    # close input file
+    inputFile.close()
+
+    print len(dictionary)
+
+
+"""
+# =============================================================================
+
 PARSE
 
 # =============================================================================
 """
 def parse(parameters):
 
-    print parameters.get(translated)
-    print parameters.get(report)
-    print parameters.get(output)
+    inputLocation = parameters.get(TRANSLATED)
+    outputLocation = parameters.get(OUTPUT)
+
+    operate(inputLocation)
 
 
 """
