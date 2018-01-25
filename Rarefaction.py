@@ -40,7 +40,7 @@ GLOBALS
 PROGRAM_DESCRIPTION = "This program generates a rarefaction curve for Kraken \
     data."
 
-PROGRAM_USAGE = "%(prog)s -t TRANSLATED -r REPORT -o OUTPUT"
+PROGRAM_USAGE = "%(prog)s -t TRANSLATED -o OUTPUT"
 
 # ARGUMENTS #
 
@@ -53,11 +53,6 @@ TRANSLATED = "translated"
 TRANSLATED_LONG = LONG + TRANSLATED
 TRANSLATED_SHORT = SHORT + "t"
 TRANSLATED_HELP = "The file name of the input Kraken translated reads."
-
-REPORT = "report"
-REPORT_LONG = LONG + REPORT
-REPORT_SHORT = SHORT + "r"
-REPORT_HELP = "The file name of the input Kraken report summary file."
 
 OUTPUT = "output"
 OUTPUT_LONG = LONG + OUTPUT
@@ -114,13 +109,6 @@ def main():
         TRANSLATED_LONG,
         dest=TRANSLATED,
         help=TRANSLATED_HELP,
-        type=str, required=True)
-
-    required.add_argument(
-        REPORT_SHORT,
-        REPORT_LONG,
-        dest=REPORT,
-        help=REPORT_HELP,
         type=str, required=True)
 
     required.add_argument(
