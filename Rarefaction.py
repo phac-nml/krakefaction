@@ -27,6 +27,7 @@ __version__ = '0.1.0'
 import os
 import argparse
 import sys
+import random
 
 
 """
@@ -41,6 +42,11 @@ PROGRAM_DESCRIPTION = "This program generates a rarefaction curve for Kraken \
     data."
 
 PROGRAM_USAGE = "%(prog)s -t TRANSLATED -o OUTPUT"
+
+# DEFAULTS #
+
+DEFAULT_LABELS = "s"
+DEFAULT_RATE = 0.05
 
 # ARGUMENTS #
 
@@ -60,6 +66,21 @@ OUTPUT_SHORT = SHORT + "o"
 OUTPUT_HELP = "The file name of the output rarefaction data."
 
 # OPTIONAL ARGUMENTS #
+
+LABELS = "labels"
+LABELS_LONG = LONG + LABELS
+LABELS_SHORT = SHORT + "l"
+LABELS_HELP = "The Kraken taxonomic labels for which to produce rarefaction \
+    data. These labels are 'd','p','c','o','f','g','p', and 's'. These \
+    labels should be provided as the comprising characters of a string. \
+    Example: 'pogs' would produce output for the phylum, order, genus, and \
+    species level."
+
+RATE = "rate"
+RATE_LONG = LONG + RATE
+RATE_SHORT = SHORT + "r"
+RATE_HELP = "The sampling rate in the range (0, 1]. Example: 0.1 will \
+    generate 10 data points."
 
 # Version number
 VERSION = "version"
@@ -83,14 +104,10 @@ def updateDictionary(dictionary, rankings, label):
             # check to see if it already exists in the dictory:
 
             if rank in dictionary:
-
                 dictionary[rank] += 1
-                #print "updating " + str(rank)
 
             else:
-
                 dictionary[rank] = 1
-                #print "adding " + str(rank)
 
 
 """
@@ -100,9 +117,7 @@ OPERATE
 
 # =============================================================================
 """
-def operate(inputLocation):
-
-    dictionary = {}
+def operate(inputLocation, label, samplingRates):
 
     # check input file
     if not os.path.isfile(inputLocation):
@@ -111,28 +126,93 @@ def operate(inputLocation):
 
     inputFile = open(inputLocation, 'r')
 
+    # initialize dictionaries
+    dictionaries = []
+
+    for samplingRate in samplingRates:
+
+        dictionaries.append({})
+
     for line in inputFile:
 
-        #print line
+        number = random.random() # generate a random number
 
-        tokens = line.split("\t")
-        read = tokens[0].strip()
-        classification = tokens[1].strip()
+        # include the current read in all subsampling rates greater than number
+        for i in range(0, len(samplingRates)):
 
-        #print read
-        #print classification
+            # do we add the line to the sub sample?
+            if number <= samplingRates[i]:
 
-        rankings = classification.split("|")
+                tokens = line.split("\t")
+                read = tokens[0].strip()
+                classification = tokens[1].strip()
 
-        #print rankings
+                rankings = classification.split("|")
 
-        updateDictionary(dictionary, rankings, "s")
+                updateDictionary(dictionaries[i], rankings, label)
 
     # close input file
     inputFile.close()
 
-    print len(dictionary)
+    # report
+    for i in range(0, len(samplingRates)):
+        print str(samplingRates[i]) + " -- " + str(len(dictionaries[i]))
 
+
+"""
+# =============================================================================
+
+RUN
+
+# =============================================================================
+"""
+def run(inputLocation, outputLocation, labels, rate):
+
+    # Check for optional values and set if necessary.
+    if not labels:
+        labels = DEFAULT_LABELS
+
+    if not rate:
+        rate = DEFAULT_RATE
+
+    samplingRates = []
+    samplingPoints = int(1 / float(rate))
+
+    print samplingPoints
+
+    for i in range(1, (samplingPoints + 1)):    # +1 to shift off 0
+
+        samplingRates.append(i * rate)
+
+    print samplingRates
+
+    if "d" in labels:
+        print "\nDomain"
+        operate(inputLocation, "d", samplingRates)
+
+    if "p" in labels:
+        print "\nPhylum"
+        operate(inputLocation, "p", samplingRates)
+
+    if "c" in labels:
+        print "\nClass"
+        operate(inputLocation, "c", samplingRates)
+
+    if "o" in labels:
+        print "\nOrder"
+        operate(inputLocation, "o", samplingRates)
+
+    if "f" in labels:
+        print "\nFamily"
+        operate(inputLocation, "f", samplingRates)
+
+    if "g" in labels:
+        print "\nGenus"
+        operate(inputLocation, "g", samplingRates)
+
+    if "s" in labels:
+        print "\nSpecies"
+        operate(inputLocation, "s", samplingRates)
 
 """
 # =============================================================================
@@ -145,9 +225,10 @@ def parse(parameters):
 
     inputLocation = parameters.get(TRANSLATED)
     outputLocation = parameters.get(OUTPUT)
+    labels = parameters.get(LABELS)
+    rate = parameters.get(RATE)
 
-    operate(inputLocation)
-
+    run(inputLocation, outputLocation, labels, rate)
 
 """
 # =============================================================================
@@ -186,6 +267,23 @@ def main():
         dest=OUTPUT,
         help=OUTPUT_HELP,
         type=str, required=True)
+
+    # --- OPTIONAL --- #
+    optional = parser.add_argument_group("OPTIONAL")
+
+    optional.add_argument(
+        LABELS_SHORT,
+        LABELS_LONG,
+        dest=LABELS,
+        help=LABELS_HELP,
+        type=str)
+
+    optional.add_argument(
+        RATE_SHORT,
+        RATE_LONG,
+        dest=RATE,
+        help=RATE_HELP,
+        type=float)
 
     args = parser.parse_args()
     parameters = vars(args)
