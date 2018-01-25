@@ -1,7 +1,7 @@
 ## Legal ##
 -----------
 
-Copyright Government of Canada 2017
+Copyright Government of Canada 2018
 
 Written by: National Microbiology Laboratory, Public Health Agency of Canada
 
