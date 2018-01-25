@@ -100,9 +100,8 @@ def updateDictionary(dictionary, rankings, label):
 
         if rank.startswith(str(label) + "_"):
 
-            # we found the right rank!
-            # check to see if it already exists in the dictory:
-
+            # We found the right rank!
+            # Check to see if it already exists in the dictory:
             if rank in dictionary:
                 dictionary[rank] += 1
 
@@ -113,34 +112,32 @@ def updateDictionary(dictionary, rankings, label):
 """
 # =============================================================================
 
-OPERATE
+GenerateRarefaction
 
 # =============================================================================
 """
-def operate(inputLocation, label, samplingRates):
+def generateRarefaction(inputLocation, outputFile, label, samplingRates):
 
-    # check input file
-    if not os.path.isfile(inputLocation):
-        raise RuntimeError(
-            "ERROR: Could not open input file: " + inputLocation + "\n")
-
+    # Open the file.
     inputFile = open(inputLocation, 'r')
 
-    # initialize dictionaries
+    # Initialize the dictionaries.
     dictionaries = []
 
     for samplingRate in samplingRates:
 
         dictionaries.append({})
 
+    # Populate the dictionaries with a specific random sampling rate.
     for line in inputFile:
 
-        number = random.random() # generate a random number
-
-        # include the current read in all subsampling rates greater than number
+        # Operate on each sampling rate independently.
         for i in range(0, len(samplingRates)):
 
-            # do we add the line to the sub sample?
+            number = random.random() # Generate a random number (each time!)
+
+            # Do we add the line to the sub sample?
+            # Include the read if its sampling rate is greater than number.
             if number <= samplingRates[i]:
 
                 tokens = line.split("\t")
@@ -151,12 +148,19 @@ def operate(inputLocation, label, samplingRates):
 
                 updateDictionary(dictionaries[i], rankings, label)
 
-    # close input file
+    # Close input file.
     inputFile.close()
 
-    # report
+    # Report the results.
     for i in range(0, len(samplingRates)):
-        print str(samplingRates[i]) + " -- " + str(len(dictionaries[i]))
+        outputFile.write(str(len(dictionaries[i])))
+
+        # Do we need to write a comma?
+        if i < (len(samplingRates) - 1):  # There's another item following.
+            outputFile.write(",")
+        # Do we need the final end line?
+        else:
+            outputFile.write("\n")
 
 
 """
@@ -175,44 +179,58 @@ def run(inputLocation, outputLocation, labels, rate):
     if not rate:
         rate = DEFAULT_RATE
 
+    # Check the input file.
+    if not os.path.isfile(inputLocation):
+        raise RuntimeError(
+            "ERROR: Could not open input file: " + inputLocation + "\n")
+
+    # Check the rate is not within bounds.
+    if (rate <= 0 or rate > 1):
+        raise RuntimeError(
+            "ERROR: The rate is not in range (0, 1]: " + str(rate) + "\n")
+
+    # Open the output file.
+    outputFile = open(outputLocation, 'w')
+
     samplingRates = []
     samplingPoints = int(1 / float(rate))
-
-    print samplingPoints
 
     for i in range(1, (samplingPoints + 1)):    # +1 to shift off 0
 
         samplingRates.append(i * rate)
 
-    print samplingRates
+    # Generate rarefaction data for each label.
 
     if "d" in labels:
-        print "\nDomain"
-        operate(inputLocation, "d", samplingRates)
+        outputFile.write("Domain\n")
+        generateRarefaction(inputLocation, outputFile, "d", samplingRates)
 
     if "p" in labels:
-        print "\nPhylum"
-        operate(inputLocation, "p", samplingRates)
+        outputFile.write("Phylum\n")
+        generateRarefaction(inputLocation, outputFile, "p", samplingRates)
 
     if "c" in labels:
-        print "\nClass"
-        operate(inputLocation, "c", samplingRates)
+        outputFile.write("Class\n")
+        generateRarefaction(inputLocation, outputFile, "c", samplingRates)
 
     if "o" in labels:
-        print "\nOrder"
-        operate(inputLocation, "o", samplingRates)
+        outputFile.write("Order\n")
+        generateRarefaction(inputLocation, outputFile, "o", samplingRates)
 
     if "f" in labels:
-        print "\nFamily"
-        operate(inputLocation, "f", samplingRates)
+        outputFile.write("Family\n")
+        generateRarefaction(inputLocation, outputFile, "f", samplingRates)
 
     if "g" in labels:
-        print "\nGenus"
-        operate(inputLocation, "g", samplingRates)
+        outputFile.write("Genus\n")
+        generateRarefaction(inputLocation, outputFile, "g", samplingRates)
 
     if "s" in labels:
-        print "\nSpecies"
-        operate(inputLocation, "s", samplingRates)
+        outputFile.write("Species\n")
+        generateRarefaction(inputLocation, outputFile, "s", samplingRates)
+
+    # Close output file.
+    outputFile.close()
 
 """
 # =============================================================================
