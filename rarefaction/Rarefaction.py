@@ -43,9 +43,12 @@ PROGRAM_DESCRIPTION = "This program generates a rarefaction curve for Kraken \
 
 PROGRAM_USAGE = "%(prog)s -t TRANSLATED -o OUTPUT"
 
+# CONSTANTS
+
+CLASSIFIED = "C"
+
 # DEFAULTS #
 
-DEFAULT_LABELS = "s"
 DEFAULT_RATE = 0.05
 
 # ARGUMENTS #
@@ -60,21 +63,18 @@ TRANSLATED_LONG = LONG + TRANSLATED
 TRANSLATED_SHORT = SHORT + "t"
 TRANSLATED_HELP = "The file name of the input Kraken translated reads."
 
+UNTRANSLATED = "untranslated"
+UNTRANSLATED_LONG = LONG + UNTRANSLATED
+UNTRANSLATED_SHORT = SHORT + "u"
+UNTRANSLATED_HELP = "The file name of the input untranslated Kraken reads. \
+    These may be filtered or "
+
 OUTPUT = "output"
 OUTPUT_LONG = LONG + OUTPUT
 OUTPUT_SHORT = SHORT + "o"
 OUTPUT_HELP = "The file name of the output rarefaction data."
 
 # OPTIONAL ARGUMENTS #
-
-LABELS = "labels"
-LABELS_LONG = LONG + LABELS
-LABELS_SHORT = SHORT + "l"
-LABELS_HELP = "The Kraken taxonomic labels for which to produce rarefaction \
-    data. These labels are 'd','p','c','o','f','g','p', and 's'. These \
-    labels should be provided as the comprising characters of a string. \
-    Example: 'pogs' would produce output for the phylum, order, genus, and \
-    species level."
 
 RATE = "rate"
 RATE_LONG = LONG + RATE
@@ -87,26 +87,80 @@ VERSION = "version"
 VERSION_LONG = LONG + VERSION
 VERSION_SHORT = SHORT + "V"
 
+
 """
 # =============================================================================
 
-UPDATE DICTIONARY
+SAMPLING RATE CLASS
 
 # =============================================================================
 """
-def updateDictionary(dictionary, rankings, label):
+class SamplingRate:
 
-    for rank in rankings:
+    DOMAIN = "d"
+    PHYLUM = "p"
+    CLASS = "c"
+    ORDER = "o"
+    FAMILY = "f"
+    GENERA = "g"
+    SPECIES = "s"
 
-        if rank.startswith(str(label) + "_"):
+    """
+    # =============================================================================
 
-            # We found the right rank!
-            # Check to see if it already exists in the dictory:
-            if rank in dictionary:
-                dictionary[rank] += 1
+    CONSTRUCTOR
 
-            else:
-                dictionary[rank] = 1
+    # =============================================================================
+    """
+    def __init__(self, rate):
+
+        self.rate = rate
+
+        self.domainDictionary = {}
+        self.phylumDictionary = {}
+        self.classDictionary = {}
+        self.orderDictionary = {}
+        self.familyDictionary = {}
+        self.generaDictionary = {}
+        self.speciesDictionary = {}
+
+    """
+    # =============================================================================
+
+    UPDATE DICTIONARIES
+
+    # =============================================================================
+    """
+    def updateDictionaries(self, rankings):
+
+        self.updateDictionary(self.domainDictionary, rankings, self.DOMAIN)
+        self.updateDictionary(self.phylumDictionary, rankings, self.PHYLUM)
+        self.updateDictionary(self.classDictionary, rankings, self.CLASS)
+        self.updateDictionary(self.orderDictionary, rankings, self.ORDER)
+        self.updateDictionary(self.familyDictionary, rankings, self.FAMILY)
+        self.updateDictionary(self.generaDictionary, rankings, self.GENERA)
+        self.updateDictionary(self.speciesDictionary, rankings, self.SPECIES)
+
+    """
+    # =============================================================================
+
+    UPDATE DICTIONARY
+
+    # =============================================================================
+    """
+    def updateDictionary(self, dictionary, rankings, label):
+
+        for rank in rankings:
+
+            if rank.startswith(str(label) + "_"):
+
+                # We found the right rank!
+                # Check to see if it already exists in the dictory:
+                if rank in dictionary:
+                    dictionary[rank] += 1
+
+                else:
+                    dictionary[rank] = 1
 
 
 """
@@ -116,51 +170,134 @@ GenerateRarefaction
 
 # =============================================================================
 """
-def generateRarefaction(inputLocation, outputFile, label, samplingRates):
+def generateRarefaction(untranslatedLocation, translatedLocation, outputFile, samplingRates):
 
-    # Open the file.
-    inputFile = open(inputLocation, 'r')
+    # Open the files.
+    untranslatedFile = open(untranslatedLocation, 'r')
+    translatedFile = open(translatedLocation, 'r')
 
-    # Initialize the dictionaries.
-    dictionaries = []
+    # Initialize.
+    numberOfReads = []
 
     for samplingRate in samplingRates:
 
-        dictionaries.append({})
+        numberOfReads.append(0)
 
-    # Populate the dictionaries with a specific random sampling rate.
-    for line in inputFile:
+    # Iterate over all the reads in the untranslated file.
+    for untranslatedLine in untranslatedFile:
 
-        # Operate on each sampling rate independently.
+        number = random.random() # Generate a random number once per read!
+        # We generate this random number once because we want all reads to
+        # be in all sampling rate dictionaries that are "bigger" (have a
+        # higher probability).
+
+        # Is the read classified?
+        # We only want to do this work once for all the sampling rates!
+        if untranslatedLine[0] == CLASSIFIED:
+
+            # Advance the translated file to find the translation.
+            translatedLine = translatedFile.readline()
+
+            # Tokenize the translation.
+            tokens = translatedLine.strip().split()
+            read = tokens[0].strip()
+            classification = tokens[1].strip()
+
+            rankings = classification.split("|")
+
+        # Operate on each sampling rate:
         for i in range(0, len(samplingRates)):
 
-            number = random.random() # Generate a random number (each time!)
+            # Do we add the read to the subsample (classified and unclassied)?
+            # Include the read if its sampling rate is greater or equal.
+            if number <= samplingRates[i].rate:
 
-            # Do we add the line to the sub sample?
-            # Include the read if its sampling rate is greater than number.
-            if number <= samplingRates[i]:
+                numberOfReads[i] += 1 # Increment the number of reads.
 
-                tokens = line.strip().split()
-                read = tokens[0].strip()
-                classification = tokens[1].strip()
+                # Is the read classified?
+                # Update the dictionaries.
+                if untranslatedLine[0] == CLASSIFIED:
+                    samplingRates[i].updateDictionaries(rankings)
 
-                rankings = classification.split("|")
+    # Close input files.
+    untranslatedFile.close()
+    translatedFile.close()
 
-                updateDictionary(dictionaries[i], rankings, label)
+    writeResults(samplingRates, numberOfReads, outputFile)
 
-    # Close input file.
-    inputFile.close()
+"""
+# =============================================================================
 
-    # Report the results.
-    for i in range(0, len(samplingRates)):
-        outputFile.write(str(len(dictionaries[i])))
+WRITE RESULTS
 
-        # Do we need to write a comma?
-        if i < (len(samplingRates) - 1):  # There's another item following.
-            outputFile.write(",")
-        # Do we need the final end line?
-        else:
-            outputFile.write("\n")
+# =============================================================================
+"""
+def writeResults(samplingRates, numberOfReads, outputFile):
+
+    last = len(samplingRates) - 1
+
+    # Rates
+    outputFile.write("rates,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(samplingRates[i].rate) + ",")
+    outputFile.write(str(samplingRates[last].rate)) # last
+    outputFile.write("\n")
+
+    # Number of reads in each subsample:
+    outputFile.write("reads,")
+    for i in range(0, len(numberOfReads) - 1):
+        outputFile.write(str(numberOfReads[i]) + ",")
+    outputFile.write(str(numberOfReads[len(numberOfReads) - 1])) # last
+    outputFile.write("\n")
+
+    # Domains
+    outputFile.write("domains,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(len(samplingRates[i].domainDictionary)) + ",")
+    outputFile.write(str(len(samplingRates[last].domainDictionary))) # last
+    outputFile.write("\n")
+
+    # Phylums
+    outputFile.write("phylums,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(len(samplingRates[i].phylumDictionary)) + ",")
+    outputFile.write(str(len(samplingRates[last].phylumDictionary))) # last
+    outputFile.write("\n")
+
+    # Classes
+    outputFile.write("classes,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(len(samplingRates[i].classDictionary)) + ",")
+    outputFile.write(str(len(samplingRates[last].classDictionary))) # last
+    outputFile.write("\n")
+
+    # Orders
+    outputFile.write("orders,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(len(samplingRates[i].orderDictionary)) + ",")
+    outputFile.write(str(len(samplingRates[last].orderDictionary))) # last
+    outputFile.write("\n")
+
+    # Families
+    outputFile.write("families,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(len(samplingRates[i].familyDictionary)) + ",")
+    outputFile.write(str(len(samplingRates[last].familyDictionary))) # last
+    outputFile.write("\n")
+
+    # Genera
+    outputFile.write("genera,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(len(samplingRates[i].generaDictionary)) + ",")
+    outputFile.write(str(len(samplingRates[last].generaDictionary))) # last
+    outputFile.write("\n")
+
+    # Species
+    outputFile.write("species,")
+    for i in range(0, len(samplingRates) - 1):
+        outputFile.write(str(len(samplingRates[i].speciesDictionary)) + ",")
+    outputFile.write(str(len(samplingRates[last].speciesDictionary))) # last
+    outputFile.write("\n")
 
 
 """
@@ -170,19 +307,21 @@ RUN
 
 # =============================================================================
 """
-def run(inputLocation, outputLocation, labels, rate):
+def run(untranslatedLocation, translatedLocation, outputLocation, rate):
+
+    # Check the untranslated file.
+    if not os.path.isfile(untranslatedLocation):
+        raise RuntimeError(
+            "ERROR: Could not open input file: " + untranslatedLocation + "\n")
+
+    # Check the translated file.
+    if not os.path.isfile(translatedLocation):
+        raise RuntimeError(
+            "ERROR: Could not open input file: " + translatedLocation + "\n")
 
     # Check for optional values and set if necessary.
-    if not labels:
-        labels = DEFAULT_LABELS
-
     if not rate:
         rate = DEFAULT_RATE
-
-    # Check the input file.
-    if not os.path.isfile(inputLocation):
-        raise RuntimeError(
-            "ERROR: Could not open input file: " + inputLocation + "\n")
 
     # Check the rate is not within bounds.
     if (rate <= 0 or rate > 1):
@@ -192,42 +331,15 @@ def run(inputLocation, outputLocation, labels, rate):
     # Open the output file.
     outputFile = open(outputLocation, 'w')
 
+    # Initialize the sampling rates (as classes with a rate variable):
     samplingRates = []
     samplingPoints = int(1 / float(rate))
 
-    for i in range(1, (samplingPoints + 1)):    # +1 to shift off 0
+    for i in range(1, (samplingPoints + 1)):    # +1 to shift start off 0 to 1
 
-        samplingRates.append(i * rate)
+        samplingRates.append(SamplingRate(i * rate))
 
-    # Generate rarefaction data for each label.
-
-    if "d" in labels:
-        outputFile.write("Domain\n")
-        generateRarefaction(inputLocation, outputFile, "d", samplingRates)
-
-    if "p" in labels:
-        outputFile.write("Phylum\n")
-        generateRarefaction(inputLocation, outputFile, "p", samplingRates)
-
-    if "c" in labels:
-        outputFile.write("Class\n")
-        generateRarefaction(inputLocation, outputFile, "c", samplingRates)
-
-    if "o" in labels:
-        outputFile.write("Order\n")
-        generateRarefaction(inputLocation, outputFile, "o", samplingRates)
-
-    if "f" in labels:
-        outputFile.write("Family\n")
-        generateRarefaction(inputLocation, outputFile, "f", samplingRates)
-
-    if "g" in labels:
-        outputFile.write("Genus\n")
-        generateRarefaction(inputLocation, outputFile, "g", samplingRates)
-
-    if "s" in labels:
-        outputFile.write("Species\n")
-        generateRarefaction(inputLocation, outputFile, "s", samplingRates)
+    generateRarefaction(untranslatedLocation, translatedLocation, outputFile, samplingRates)
 
     # Close output file.
     outputFile.close()
@@ -241,12 +353,12 @@ PARSE
 """
 def parse(parameters):
 
-    inputLocation = parameters.get(TRANSLATED)
+    untranslatedLocation = parameters.get(UNTRANSLATED)
+    translatedLocation = parameters.get(TRANSLATED)
     outputLocation = parameters.get(OUTPUT)
-    labels = parameters.get(LABELS)
     rate = parameters.get(RATE)
 
-    run(inputLocation, outputLocation, labels, rate)
+    run(untranslatedLocation, translatedLocation, outputLocation, rate)
 
 """
 # =============================================================================
@@ -273,6 +385,13 @@ def main():
     required = parser.add_argument_group("REQUIRED")
 
     required.add_argument(
+        UNTRANSLATED_SHORT,
+        UNTRANSLATED_LONG,
+        dest=UNTRANSLATED,
+        help=UNTRANSLATED_HELP,
+        type=str, required=True)
+
+    required.add_argument(
         TRANSLATED_SHORT,
         TRANSLATED_LONG,
         dest=TRANSLATED,
@@ -290,13 +409,6 @@ def main():
     optional = parser.add_argument_group("OPTIONAL")
 
     optional.add_argument(
-        LABELS_SHORT,
-        LABELS_LONG,
-        dest=LABELS,
-        help=LABELS_HELP,
-        type=str)
-
-    optional.add_argument(
         RATE_SHORT,
         RATE_LONG,
         dest=RATE,
@@ -308,6 +420,8 @@ def main():
 
     print("Rarefaction v" + str(__version__) + "\n")
     parse(parameters)
+
+    print("\nComplete!")
 
 
 """
