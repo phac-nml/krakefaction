@@ -2,6 +2,6 @@
 
 DIR=`dirname $0`
 
-. $DIR/../lib/rarefaction/bin/activate
-rarefaction "$@"
+. $DIR/../lib/krakefaction/bin/activate
+krakefaction "$@"
 
