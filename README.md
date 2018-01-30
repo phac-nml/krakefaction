@@ -7,7 +7,7 @@ software  is in csv format.
 
 # Release #
 
-Krakefaction 0.1.0
+Krakefaction 0.2.0
 
 # Installation #
 
