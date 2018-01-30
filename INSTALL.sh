@@ -18,17 +18,17 @@ LIB=$PREFIX/lib
 mkdir -p "$PREFIX"/{bin,lib}
 
 # Create Python virtual environment:
-VENV=$LIB/rarefaction
+VENV=$LIB/krakefaction
 virtualenv $VENV
 . $VENV/bin/activate
 
 # PIP
 pip install --upgrade pip
 
-# RAREFACTION
+# KRAKEFACTION
 pip install $DIR/
 
 # BIN
-cp $DIR/install/rarefaction $BIN/rarefaction
+cp $DIR/install/krakefaction $BIN/krakefaction
 
 

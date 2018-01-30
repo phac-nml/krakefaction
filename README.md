@@ -1,10 +1,15 @@
-## Release ##
--------------
+# Introduction #
 
-0.1.0
+This software generates rarefaction data from Kraken output. The software
+organizes reads into subsamples and reports the number of taxa present within
+each subsample for all principal classification ranks. The output of this
+software  is in csv format.
 
-## Installation ##
-------------------
+# Release #
+
+Krakefaction 0.1.0
+
+# Installation #
 
 This software is compatible with Python 2.7 and Python 3. The following may
 check your Python version:
@@ -36,17 +41,16 @@ PREFIX/bin. This may require security privileges:
 rarefaction/INSTALL.sh PREFIX
 ```
 
-## Contact ##
--------------
+# Contact #
 
 **Eric Marinier**: eric.marinier@canada.ca
 
-## Legal ##
------------
+# Legal #
 
 Copyright Government of Canada 2018
 
-Written by: National Microbiology Laboratory, Public Health Agency of Canada
+Written by: Eric Marinier, National Microbiology Laboratory,
+    Public Health Agency of Canada
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this work except in compliance with the License. You may obtain a copy of the
