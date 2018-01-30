@@ -29,7 +29,7 @@ environment. The following will install the software locally into the source
 directory and will not require security privileges:
 
 ```bash
-rarefaction/INSTALL.sh
+krakefaction/INSTALL.sh
 ```
 
 Alternatively, you may specify an install location, PREFIX, such as
@@ -38,7 +38,21 @@ PREFIX/bin. This may require security privileges:
 
 
 ```bash
-rarefaction/INSTALL.sh PREFIX
+krakefaction/INSTALL.sh PREFIX
+```
+
+# Running Krakefaction #
+
+Krakefaction's command line arguments can be found by running:
+
+```bash
+krakefaction --help
+```
+
+A simple example of running Krakefaction:
+
+```bash
+krakefaction -u untranslated.tab -t translated.tab -o output.csv
 ```
 
 # Contact #
